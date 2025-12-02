@@ -1,0 +1,22 @@
+// TODO: Add your Firebase configuration here
+// 
+// To set up Firebase for your project:
+// 1. Go to https://console.firebase.google.com/
+// 2. Create a new project or select an existing one
+// 3. Add an Android app to your Firebase project
+// 4. Download the google-services.json file
+// 5. Place it in: android/app/google-services.json
+// 6. Add an iOS app to your Firebase project
+// 7. Download the GoogleService-Info.plist file
+// 8. Place it in: ios/Runner/GoogleService-Info.plist
+// 9. For web support, add your Firebase web configuration
+//
+// Additional setup:
+// 1. In android/build.gradle.kts, add:
+//    - classpath("com.google.gms:google-services:4.4.0") to dependencies
+// 2. In android/app/build.gradle.kts, add:
+//    - id("com.google.gms.google-services") to plugins
+//
+// Configuration values to update:
+// 1. lib/services/gemini_service.dart - Replace YOUR_GEMINI_API_KEY with your actual Gemini API key
+// 2. lib/services/history_service.dart - Replace YOUR_APP_ID with your Firebase app ID
