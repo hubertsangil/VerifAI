@@ -18,21 +18,12 @@ class GeminiService {
       final metadata = await _metadataService.extractMetadata(url);
       
       String contentToAnalyze;
-      if (metadata != null) {
+      String analysisInstructions;
+      
+      if (metadata != null && (metadata.title != null || metadata.description != null)) {
         contentToAnalyze = metadata.toAnalysisText();
         debugPrint('Metadata extracted successfully');
-      } else {
-        contentToAnalyze = 'URL: $url\n(Unable to extract metadata - URL may require authentication or be inaccessible)';
-        debugPrint('Could not extract metadata, using URL only');
-      }
-      
-      // Construct the request
-      final requestBody = {
-        'contents': [
-          {
-            'parts': [
-              {
-                'text': '''You are a professional fact-checker. Analyze the following content for accuracy and credibility.
+        analysisInstructions = '''You are a professional fact-checker. Analyze the following content for accuracy and credibility.
 
 $contentToAnalyze
 
@@ -54,7 +45,51 @@ IMPORTANT:
 3. Cross-reference with known facts and credible sources
 4. Provide a clear summary explaining your verdict
 5. Include at least 2-3 credible sources to support your analysis
-4. Be objective and thorough in your analysis'''
+6. Be objective and thorough in your analysis''';
+      } else {
+        // For auth-gated content (Facebook, TikTok private posts, etc.)
+        contentToAnalyze = 'URL: $url';
+        debugPrint('Could not extract metadata - likely auth-gated content');
+        analysisInstructions = '''You are a professional fact-checker. The following URL requires authentication to access (likely a social media post from Facebook, TikTok, Instagram, etc.):
+
+$contentToAnalyze
+
+Since the content cannot be directly accessed, please provide general guidance:
+
+1. Explain that this appears to be authentication-required content (private post, login-required page)
+2. Provide tips on how to verify social media posts manually:
+   - Check the source account's credibility and history
+   - Look for verification badges on the account
+   - Search for the same claim from reputable news sources
+   - Check fact-checking websites like Snopes, FactCheck.org, or PolitiFact
+   - Be wary of sensational headlines or emotional appeals
+   - Look for primary sources and evidence
+3. Explain common red flags for misinformation on social media
+
+Your response MUST start with "VERDICT: UNKNOWN" followed by the guidance.
+
+Format:
+{
+  "verdict": "UNKNOWN",
+  "summary": "Your detailed guidance for verifying this type of content",
+  "sources": [
+    {
+      "title": "Fact-Checking Resource Name",
+      "uri": "https://example.com"
+    }
+  ]
+}
+
+Include helpful fact-checking resources like Snopes, FactCheck.org, PolitiFact, etc. in sources.''';
+      }
+      
+      // Construct the request
+      final requestBody = {
+        'contents': [
+          {
+            'parts': [
+              {
+                'text': analysisInstructions
               }
             ]
           }

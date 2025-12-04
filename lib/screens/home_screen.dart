@@ -251,7 +251,7 @@ class _HomeScreenState extends State<HomeScreen> {
       case FactCheckVerdict.false_:
         return Colors.red;
       case FactCheckVerdict.unknown:
-        return Colors.grey;
+        return Colors.blue; // Changed from grey to blue for better visibility
     }
   }
 
@@ -615,7 +615,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ? Icons.check_circle
                       : result.verdict == FactCheckVerdict.false_
                           ? Icons.cancel
-                          : Icons.warning,
+                          : result.verdict == FactCheckVerdict.unknown
+                              ? Icons.info_outline
+                              : Icons.warning,
                   color: _getVerdictColor(result.verdict),
                   size: 32,
                 ),
@@ -625,11 +627,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Verdict',
+                        result.verdict == FactCheckVerdict.unknown 
+                            ? 'Authentication Required'
+                            : 'Verdict',
                         style: Theme.of(context).textTheme.labelSmall,
                       ),
                       Text(
-                        result.verdict.toString(),
+                        result.verdict == FactCheckVerdict.unknown
+                            ? 'CANNOT VERIFY'
+                            : result.verdict.toString(),
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               color: _getVerdictColor(result.verdict),
                               fontWeight: FontWeight.bold,
