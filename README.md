@@ -1,17 +1,59 @@
 # VerifAI - AI-Powered Fact-Checking App
 
-A modern Flutter mobile application that helps users verify the accuracy of online content through AI-powered fact-checking. VerifAI receives shared links from any app, extracts metadata from web pages, and uses Google's Gemini API to analyze and fact-check the content.
+A modern Flutter mobile application that works as an **AI layer for social media apps** like Facebook, TikTok, Twitter, and Instagram. VerifAI helps users verify the accuracy of online content through AI-powered fact-checking by receiving shared links from any app, extracting metadata from web pages, and using Google's Gemini API to analyze and fact-check the content.
+
+## Key Concept: AI Layer for Social Media
+
+VerifAI acts as an intelligent intermediary between you and social media platforms:
+
+1. **See a suspicious post** on Facebook, TikTok, Twitter, Instagram, or any app
+2. **Tap the share button** on that post/reel/article
+3. **Select VerifAI** from the share menu
+4. **Get instant AI analysis** - accurate, misleading, or false
+5. **View detailed sources** and make informed decisions
+
+No need to copy-paste URLs manually - VerifAI integrates seamlessly with Android's share functionality!
 
 ## Features
 
-- 🔐 **Firebase Authentication** - Secure email/password authentication with user profiles
-- 🔗 **Share Intent Support** - Receive URLs from any app via Android share sheet
+- 📲 **Share Intent Integration** - Receive content from any app via Android share sheet
 - 🤖 **AI Fact-Checking** - Powered by Google's Gemini 2.0 Flash Lite model
 - 🌐 **Smart Metadata Extraction** - Extracts Open Graph metadata (title, description, content) from web pages
-- 📱 **Material 3 Design** - Modern UI with animated blue gradient background
+- ⚡ **Instant Analysis** - Auto-analyzes shared content with confirmation dialog
+- 🔐 **Firebase Authentication** - Secure email/password authentication with user profiles
 - 📊 **History Tracking** - Store and view past fact-checks with Firestore
+- 📱 **Material 3 Design** - Modern UI with animated blue gradient background
 - 🌍 **SDG Alignment** - Committed to UN Sustainable Development Goals (4, 9, 16)
-- ⚡ **Real-time Analysis** - Instant fact-checking with comprehensive source citations
+- 🔗 **Multi-Platform Support** - Works with Facebook, TikTok, Twitter, Instagram, news sites, and more
+
+## How to Use VerifAI as an AI Layer
+
+### Method 1: Share from Any App (Recommended)
+
+1. **Open any social media app** (Facebook, TikTok, Twitter, Instagram, etc.)
+2. **Find a post, reel, or article** you want to verify
+3. **Tap the share button** (usually represented by an arrow icon)
+4. **Select "VerifAI"** from the share options
+5. **Confirm the analysis** - VerifAI will show what it's about to check
+6. **View results** - Get an instant verdict with detailed analysis and sources
+
+### Method 2: Manual URL Entry
+
+1. **Copy the URL** of the content you want to verify
+2. **Open VerifAI**
+3. **Paste the URL** in the input field
+4. **Tap "Analyze"**
+5. **View results**
+
+### Supported Platforms
+
+- ✅ Facebook posts and articles
+- ✅ TikTok videos (via share URL)
+- ✅ Twitter/X posts
+- ✅ Instagram posts (public content)
+- ✅ News websites and blogs
+- ✅ YouTube videos
+- ✅ Any website with Open Graph metadata
 
 ## How Fact-Checking Works
 
@@ -200,6 +242,20 @@ The app uses Open Graph protocol and meta tags to extract:
 - Animated splash screen during login/registration
 - Automatic sign-in persistence
 - Secure logout functionality
+
+### Share Integration (AI Layer Feature)
+- **Seamless sharing** from any app with share functionality
+- **Auto-populate** URL field when content is shared
+- **Confirmation dialog** shows what will be analyzed
+- **Smart detection** works with both text URLs and media files
+- **Background listening** catches shares even when app is running
+- **Intent filters** for multiple MIME types (text/plain, text/x-uri, http/https schemes)
+- **Works with:**
+  - Social media: Facebook, TikTok, Twitter, Instagram, LinkedIn
+  - Messaging apps: WhatsApp, Telegram, Messenger
+  - Browsers: Chrome, Firefox, Edge, Brave
+  - News apps: Google News, Reddit, Medium
+  - Any app with a share button!
 
 ### Fact-Checking
 1. **Input URL**: Enter a URL manually or share from any app (browser, social media, etc.)

@@ -29,11 +29,32 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Intent filter for receiving shared text/URLs -->
+            
+            <!-- VerifAI Share Integration: AI Layer for Social Media -->
+            <!-- These intent filters allow VerifAI to appear in share menus -->
+            
+            <!-- Intent filter for receiving shared text/URLs from any app -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <data android:mimeType="text/plain" />
+            </intent-filter>
+            
+            <!-- Intent filter for receiving shared URLs specifically -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/x-uri" />
+            </intent-filter>
+            
+            <!-- Intent filter for VIEW action (clicking links) -->
+            <!-- This allows VerifAI to be an option when opening URLs -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

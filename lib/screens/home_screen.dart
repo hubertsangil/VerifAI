@@ -7,6 +7,7 @@ import '../services/gemini_service.dart'; // Direct API call (works without Clou
 import '../services/history_service.dart';
 import '../models/fact_check_model.dart';
 import '../config/app_config.dart';
+import '../widgets/share_tutorial_dialog.dart';
 import 'history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -42,27 +43,95 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _initSharingIntent() {
-    // Listen for shared content while app is running
+    // Listen for shared content (URLs from Facebook, TikTok, etc.) while app is running
     _intentDataStreamSubscription = ReceiveSharingIntent.instance.getMediaStream().listen(
       (List<SharedMediaFile> value) {
-        if (value.isNotEmpty && value.first.path.isNotEmpty) {
+        if (value.isNotEmpty) {
+          final sharedContent = value.first.path;
+          debugPrint('Received shared content: $sharedContent');
           setState(() {
-            _urlController.text = value.first.path;
+            _urlController.text = sharedContent;
           });
+          // Auto-analyze when content is shared
+          _showAnalyzeConfirmation(sharedContent);
         }
       },
       onError: (err) {
-        debugPrint("Error receiving shared media: $err");
+        debugPrint("Error receiving shared content: $err");
       },
     );
 
     // Get shared content when app is opened from share sheet
     ReceiveSharingIntent.instance.getInitialMedia().then((List<SharedMediaFile> value) {
-      if (value.isNotEmpty && value.first.path.isNotEmpty) {
+      if (value.isNotEmpty) {
+        final sharedContent = value.first.path;
+        debugPrint('Initial shared content: $sharedContent');
         setState(() {
-          _urlController.text = value.first.path;
+          _urlController.text = sharedContent;
         });
+        _showAnalyzeConfirmation(sharedContent);
       }
+      // Clear the shared data so it doesn't persist
+      ReceiveSharingIntent.instance.reset();
+    });
+  }
+
+  void _showAnalyzeConfirmation(String url) {
+    // Show a dialog to confirm auto-analysis
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Row(
+            children: [
+              Icon(Icons.fact_check, color: Theme.of(context).colorScheme.primary),
+              const SizedBox(width: 12),
+              const Expanded(child: Text('Fact-Check This?')),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'VerifAI will analyze this content for accuracy:',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  url.length > 100 ? '${url.substring(0, 100)}...' : url,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            FilledButton.icon(
+              onPressed: () {
+                Navigator.pop(context);
+                _analyzeLink();
+              },
+              icon: const Icon(Icons.search),
+              label: const Text('Analyze'),
+            ),
+          ],
+        ),
+      );
     });
   }
 
@@ -262,7 +331,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Paste a link or the actual content to fact-check',
+            'Paste a link below to check its credibility',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -271,20 +340,18 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 40),
           
-          // Centered URL/Content Input Field with Google styling
+          // Centered URL Input Field with Google styling
           Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
               child: TextField(
                 controller: _urlController,
                 textAlign: TextAlign.center,
-                maxLines: null,
-                minLines: 1,
                 style: const TextStyle(fontSize: 16),
                 decoration: InputDecoration(
-                  labelText: 'Enter URL or text content',
-                  hintText: 'https://example.com/article or paste the content here',
-                  prefixIcon: const Icon(Icons.fact_check_outlined),
+                  labelText: 'Enter URL to verify',
+                  hintText: 'https://example.com/article',
+                  prefixIcon: const Icon(Icons.link),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(50),
                     borderSide: const BorderSide(width: 1),
@@ -455,6 +522,68 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          
+          // Share Feature Info Card
+          Card(
+            elevation: 0,
+            color: const Color(0xFF1976D2).withOpacity(0.1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: const Color(0xFF1976D2).withOpacity(0.3)),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1976D2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.share,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Share from Any App',
+                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1976D2),
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Share posts from Facebook, TikTok, or any app directly to VerifAI for instant fact-checking!',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Colors.black87,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.help_outline, color: Color(0xFF1976D2)),
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => const ShareTutorialDialog(),
+                      );
+                    },
+                    tooltip: 'How to use',
+                  ),
+                ],
+              ),
             ),
           ),
         ],
