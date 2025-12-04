@@ -9,7 +9,7 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateMixin {
+class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -19,8 +19,12 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   final _firestore = FirebaseFirestore.instance;
   
   late AnimationController _animationController;
+  late AnimationController _entryAnimationController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  late Animation<double> _entryFadeAnimation;
+  late Animation<Offset> _entrySlideAnimation;
+  late Animation<double> _scaleAnimation;
   
   bool _isLogin = true;
   bool _isLoading = false;
@@ -31,6 +35,8 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   @override
   void initState() {
     super.initState();
+    
+    // Form field animation controller
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 300),
@@ -48,11 +54,44 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
     );
     
     _animationController.forward();
+    
+    // Entry animation controller
+    _entryAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    
+    _entryFadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entryAnimationController,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      ),
+    );
+    
+    _entrySlideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _entryAnimationController,
+        curve: const Interval(0.0, 0.8, curve: Curves.easeOutCubic),
+      ),
+    );
+    
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entryAnimationController,
+        curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+      ),
+    );
+    
+    _entryAnimationController.forward();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
+    _entryAnimationController.dispose();
     _fullNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
@@ -205,10 +244,20 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
             TextField(
               controller: emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Email',
-                prefixIcon: Icon(Icons.email_outlined),
-                border: OutlineInputBorder(),
+                prefixIcon: const Icon(Icons.email_outlined),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: Color(0xFF1976D2), width: 2),
+                ),
               ),
             ),
           ],
@@ -271,50 +320,56 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // App Logo/Title
-                  Icon(
-                    Icons.verified_user,
-                    size: 80,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'VerifAI',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.primary,
+            child: FadeTransition(
+              opacity: _entryFadeAnimation,
+              child: SlideTransition(
+                position: _entrySlideAnimation,
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // App Logo/Title with scale animation
+                      ScaleTransition(
+                        scale: _scaleAnimation,
+                        child: Icon(
+                          Icons.verified_user,
+                          size: 80,
+                          color: const Color(0xFF1976D2),
                         ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'AI-Powered Fact Checking',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                  const SizedBox(height: 48),
-                  
-                  // Login/Register Label
-                  Text(
-                    _isLogin ? 'Login' : 'Register',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                  ),
-                  const SizedBox(height: 24),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // App name with animated blue gradient
+                      const _AnimatedGradientText(
+                        text: 'VerifAI',
+                        fontSize: 42,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'AI-Powered Fact Checking',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                      const SizedBox(height: 48),
+                      
+                      // Login/Register Label
+                      Text(
+                        _isLogin ? 'Login' : 'Register',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                      const SizedBox(height: 24),
                   
                   // Animated Full Name and Age Fields
                   AnimatedSize(
@@ -332,10 +387,20 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                                 controller: _fullNameController,
                                 keyboardType: TextInputType.name,
                                 textCapitalization: TextCapitalization.words,
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                   labelText: 'Full Name',
-                                  prefixIcon: Icon(Icons.person_outlined),
-                                  border: OutlineInputBorder(),
+                                  prefixIcon: const Icon(Icons.person_outlined),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(color: Color(0xFF1976D2), width: 2),
+                                  ),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
@@ -359,10 +424,20 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                   TextFormField(
                     controller: _emailController,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Email',
-                      prefixIcon: Icon(Icons.email_outlined),
-                      border: OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.email_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF1976D2), width: 2),
+                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.trim().isEmpty) {
@@ -411,10 +486,20 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                   TextFormField(
                     controller: _passwordController,
                     obscureText: true,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: Icon(Icons.lock_outlined),
-                      border: OutlineInputBorder(),
+                      prefixIcon: const Icon(Icons.lock_outlined),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: Colors.grey.shade300),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: Color(0xFF1976D2), width: 2),
+                      ),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -489,10 +574,20 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                               child: TextFormField(
                                 controller: _ageController,
                                 keyboardType: TextInputType.number,
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                   labelText: 'Age',
-                                  prefixIcon: Icon(Icons.cake_outlined),
-                                  border: OutlineInputBorder(),
+                                  prefixIcon: const Icon(Icons.cake_outlined),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(color: Color(0xFF1976D2), width: 2),
+                                  ),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
@@ -547,18 +642,13 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
                       ),
                     ),
                   
-                  // Submit Button
-                  FilledButton(
-                    onPressed: _isLoading ? null : _submitForm,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Text(_isLogin ? 'Sign In' : 'Sign Up'),
+                  // Submit Button with gradient
+                  SizedBox(
+                    height: 50,
+                    child: _AuthGradientButton(
+                      onPressed: _isLoading ? null : _submitForm,
+                      isLoading: _isLoading,
+                      label: _isLogin ? 'Sign In' : 'Sign Up',
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -589,7 +679,7 @@ class _AuthScreenState extends State<AuthScreen> with SingleTickerProviderStateM
           ),
         ),
       ),
-    );
+    )));
   }
 }
 
@@ -626,6 +716,197 @@ class _AuthLoadingDialog extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// Gradient button for auth screen
+class _AuthGradientButton extends StatefulWidget {
+  final VoidCallback? onPressed;
+  final bool isLoading;
+  final String label;
+
+  const _AuthGradientButton({
+    required this.onPressed,
+    this.isLoading = false,
+    required this.label,
+  });
+
+  @override
+  State<_AuthGradientButton> createState() => _AuthGradientButtonState();
+}
+
+class _AuthGradientButtonState extends State<_AuthGradientButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _gradientController;
+  late Animation<double> _gradientAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _gradientController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+    
+    _gradientAnimation = Tween<double>(begin: -0.5, end: 1.5).animate(
+      CurvedAnimation(parent: _gradientController, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _gradientController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _gradientAnimation,
+      builder: (context, child) {
+        return Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: widget.onPressed == null
+                  ? [Colors.grey.shade400, Colors.grey.shade400]
+                  : const [
+                      Color(0xFF1976D2),
+                      Color(0xFF64B5F6),
+                      Color(0xFF1976D2),
+                      Color(0xFF64B5F6),
+                      Color(0xFF1976D2),
+                    ],
+              stops: widget.onPressed == null
+                  ? null
+                  : [
+                      (_gradientAnimation.value - 0.5).clamp(0.0, 1.0),
+                      (_gradientAnimation.value - 0.25).clamp(0.0, 1.0),
+                      _gradientAnimation.value.clamp(0.0, 1.0),
+                      (_gradientAnimation.value + 0.25).clamp(0.0, 1.0),
+                      (_gradientAnimation.value + 0.5).clamp(0.0, 1.0),
+                    ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: widget.onPressed != null
+                    ? const Color(0xFF1976D2).withOpacity(0.3)
+                    : Colors.black.withOpacity(0.1),
+                blurRadius: widget.onPressed != null ? 8 : 4,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: widget.onPressed,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                alignment: Alignment.center,
+                child: widget.isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        widget.label,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Animated gradient text widget
+class _AnimatedGradientText extends StatefulWidget {
+  final String text;
+  final double fontSize;
+
+  const _AnimatedGradientText({
+    required this.text,
+    required this.fontSize,
+  });
+
+  @override
+  State<_AnimatedGradientText> createState() => _AnimatedGradientTextState();
+}
+
+class _AnimatedGradientTextState extends State<_AnimatedGradientText>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+
+    _animation = Tween<double>(begin: -0.5, end: 1.5).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return ShaderMask(
+          shaderCallback: (bounds) => LinearGradient(
+            colors: const [
+              Color(0xFF1976D2),
+              Color(0xFF64B5F6),
+              Color(0xFF1976D2),
+              Color(0xFF64B5F6),
+              Color(0xFF1976D2),
+            ],
+            stops: [
+              (_animation.value - 0.5).clamp(0.0, 1.0),
+              (_animation.value - 0.25).clamp(0.0, 1.0),
+              _animation.value.clamp(0.0, 1.0),
+              (_animation.value + 0.25).clamp(0.0, 1.0),
+              (_animation.value + 0.5).clamp(0.0, 1.0),
+            ],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ).createShader(bounds),
+          child: Text(
+            widget.text,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: widget.fontSize,
+              color: Colors.white,
+            ),
+          ),
+        );
+      },
     );
   }
 }

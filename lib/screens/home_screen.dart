@@ -117,6 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
       appBar: AppBar(
         title: const Text('VerifAI'),
         actions: [
@@ -180,53 +181,110 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // URL Input Field
-          TextField(
-            controller: _urlController,
-            decoration: InputDecoration(
-              labelText: 'Enter URL to verify',
-              hintText: 'https://example.com/article',
-              prefixIcon: const Icon(Icons.link),
-              border: const OutlineInputBorder(),
-              suffixIcon: _urlController.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        setState(() {
-                          _urlController.clear();
-                          _currentResult = null;
-                        });
-                      },
-                    )
-                  : null,
-            ),
-            keyboardType: TextInputType.url,
-            onChanged: (value) {
-              setState(() {});
-            },
+          const SizedBox(height: 40),
+          
+          // Call-to-Action Header with animated blue gradient
+          const _AnimatedGradientText(
+            text: 'Verify the Truth',
+            fontSize: 48,
           ),
-          const SizedBox(height: 16),
-
-          // Analyze Button
-          FilledButton.icon(
-            onPressed: _isAnalyzing ? null : _analyzeLink,
-            icon: _isAnalyzing
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.search),
-            label: Text(_isAnalyzing ? 'Analyzing...' : 'Analyze Link'),
+          const SizedBox(height: 8),
+          Text(
+            'Paste a link below to check its credibility',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 16,
+                ),
+          ),
+          const SizedBox(height: 40),
+          
+          // Centered URL Input Field with Google styling
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: TextField(
+                controller: _urlController,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
+                decoration: InputDecoration(
+                  labelText: 'Enter URL to verify',
+                  hintText: 'https://example.com/article',
+                  prefixIcon: const Icon(Icons.link),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(50),
+                    borderSide: const BorderSide(width: 1),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(50),
+                    borderSide: BorderSide(
+                      color: Colors.grey.shade300,
+                      width: 1,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(50),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF4285F4),
+                      width: 2,
+                    ),
+                  ),
+                  filled: true,
+                  fillColor: Colors.white,
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 16,
+                  ),
+                  suffixIcon: _urlController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            setState(() {
+                              _urlController.clear();
+                              _currentResult = null;
+                            });
+                          },
+                        )
+                      : null,
+                ),
+                keyboardType: TextInputType.url,
+                onChanged: (value) {
+                  setState(() {});
+                },
+              ),
+            ),
           ),
           const SizedBox(height: 24),
 
-          // Mission/SDG Panel
+          // Large Analyze Button with Google-style gradient
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 600),
+              child: _GradientButton(
+                onPressed: _isAnalyzing ? null : _analyzeLink,
+                isLoading: _isAnalyzing,
+              ),
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // Results Display
+          if (_currentResult != null) ...[
+            _buildResultCard(_currentResult!),
+            const SizedBox(height: 32),
+          ],
+
+          // Mission/SDG Panel (moved to bottom)
           Card(
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: BorderSide(color: Colors.grey.shade300),
+            ),
             child: ExpansionTile(
               title: const Text('Our Mission & SDG Alignment'),
               subtitle: const Text('Learn about our commitment'),
-              leading: const Icon(Icons.flag),
+              leading: const Icon(Icons.flag, color: Color(0xFF1976D2)),
               initiallyExpanded: _isMissionExpanded,
               onExpansionChanged: (expanded) {
                 setState(() {
@@ -235,32 +293,89 @@ class _HomeScreenState extends State<HomeScreen> {
               },
               children: [
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Our Mission',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
+                      // Mission Section
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1976D2).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
                             ),
+                            child: const Icon(
+                              Icons.lightbulb_outline,
+                              color: Color(0xFF1976D2),
+                              size: 24,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Our Mission',
+                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF1976D2),
+                                      ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'VerifAI empowers users to combat misinformation through AI-powered fact-checking, promoting informed decision-making and digital literacy.',
+                                  style: TextStyle(height: 1.5),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'VerifAI empowers users to combat misinformation through AI-powered fact-checking, promoting informed decision-making and digital literacy.',
-                      ),
+                      const SizedBox(height: 24),
+                      const Divider(),
                       const SizedBox(height: 16),
+                      
+                      // SDG Section Header
                       Text(
                         'UN Sustainable Development Goals',
                         style: Theme.of(context).textTheme.titleMedium?.copyWith(
                               fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1976D2),
                             ),
                       ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        '• SDG 16: Peace, Justice, and Strong Institutions\n'
-                        '• SDG 4: Quality Education\n'
-                        '• SDG 9: Industry, Innovation, and Infrastructure',
+                      const SizedBox(height: 16),
+                      
+                      // SDG 16
+                      _buildSDGItem(
+                        context,
+                        number: '16',
+                        color: const Color(0xFF00689D),
+                        title: 'Peace, Justice and Strong Institutions',
+                        description: 'Promoting access to truthful information and accountability',
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      // SDG 4
+                      _buildSDGItem(
+                        context,
+                        number: '4',
+                        color: const Color(0xFFC5192D),
+                        title: 'Quality Education',
+                        description: 'Enhancing digital literacy and critical thinking skills',
+                      ),
+                      const SizedBox(height: 12),
+                      
+                      // SDG 9
+                      _buildSDGItem(
+                        context,
+                        number: '9',
+                        color: const Color(0xFFFF7F00),
+                        title: 'Industry, Innovation and Infrastructure',
+                        description: 'Leveraging AI technology for social good',
                       ),
                     ],
                   ),
@@ -268,10 +383,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
-
-          // Results Display
-          if (_currentResult != null) _buildResultCard(_currentResult!),
         ],
       ),
     );
@@ -384,6 +495,74 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+
+  // Helper method to build SDG items with icon badges
+  Widget _buildSDGItem(
+    BuildContext context, {
+    required String number,
+    required Color color,
+    required String title,
+    required String description,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withOpacity(0.3), width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // SDG Number Badge
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  number,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  description,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.grey.shade700,
+                        height: 1.4,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 // Signing out splash screen
@@ -416,6 +595,199 @@ class _SigningOutDialog extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+// Google-style gradient button with hover effect
+class _GradientButton extends StatefulWidget {
+  final VoidCallback? onPressed;
+  final bool isLoading;
+
+  const _GradientButton({
+    required this.onPressed,
+    this.isLoading = false,
+  });
+
+  @override
+  State<_GradientButton> createState() => _GradientButtonState();
+}
+
+class _GradientButtonState extends State<_GradientButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _gradientController;
+  late Animation<double> _gradientAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _gradientController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+    
+    _gradientAnimation = Tween<double>(begin: -0.5, end: 1.5).animate(
+      CurvedAnimation(parent: _gradientController, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _gradientController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _gradientAnimation,
+      builder: (context, child) {
+        return Container(
+          height: 56,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: const [
+                Color(0xFF1976D2),
+                Color(0xFF64B5F6),
+                Color(0xFF1976D2),
+                Color(0xFF64B5F6),
+                Color(0xFF1976D2),
+              ],
+              stops: [
+                (_gradientAnimation.value - 0.5).clamp(0.0, 1.0),
+                (_gradientAnimation.value - 0.25).clamp(0.0, 1.0),
+                _gradientAnimation.value.clamp(0.0, 1.0),
+                (_gradientAnimation.value + 0.25).clamp(0.0, 1.0),
+                (_gradientAnimation.value + 0.5).clamp(0.0, 1.0),
+              ],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+            ),
+            borderRadius: BorderRadius.circular(50),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF1976D2).withOpacity(0.3),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: widget.onPressed,
+              borderRadius: BorderRadius.circular(50),
+              child: Center(
+                child: widget.isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.search,
+                            size: 28,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            widget.isLoading ? 'Analyzing...' : 'Analyze Link',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// Animated gradient text widget
+class _AnimatedGradientText extends StatefulWidget {
+  final String text;
+  final double fontSize;
+
+  const _AnimatedGradientText({
+    required this.text,
+    required this.fontSize,
+  });
+
+  @override
+  State<_AnimatedGradientText> createState() => _AnimatedGradientTextState();
+}
+
+class _AnimatedGradientTextState extends State<_AnimatedGradientText>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat();
+
+    _animation = Tween<double>(begin: -0.5, end: 1.5).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.linear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return ShaderMask(
+          shaderCallback: (bounds) => LinearGradient(
+            colors: const [
+              Color(0xFF1976D2),
+              Color(0xFF64B5F6),
+              Color(0xFF1976D2),
+              Color(0xFF64B5F6),
+              Color(0xFF1976D2),
+            ],
+            stops: [
+              (_animation.value - 0.5).clamp(0.0, 1.0),
+              (_animation.value - 0.25).clamp(0.0, 1.0),
+              _animation.value.clamp(0.0, 1.0),
+              (_animation.value + 0.25).clamp(0.0, 1.0),
+              (_animation.value + 0.5).clamp(0.0, 1.0),
+            ],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ).createShader(bounds),
+          child: Text(
+            widget.text,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: widget.fontSize,
+              color: Colors.white,
+            ),
+          ),
+        );
+      },
     );
   }
 }
