@@ -12,9 +12,9 @@ import 'package:verity_ai/main.dart';
 void main() {
   testWidgets('App smoke test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const VerityApp());
+    await tester.pumpWidget(const VerifAIApp());
 
     // Verify that the app starts with auth screen
-    expect(find.text('Verity.ai'), findsOneWidget);
+    expect(find.text('VerifAI'), findsOneWidget);
   });
 }

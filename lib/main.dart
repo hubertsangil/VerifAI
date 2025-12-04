@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:verity_ai/firebase_options.dart';
 import 'screens/auth_screen.dart';
 import 'screens/home_screen.dart';
 
@@ -8,18 +9,20 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize Firebase
-  await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   
-  runApp(const VerityApp());
+  runApp(const VerifAIApp());
 }
 
-class VerityApp extends StatelessWidget {
-  const VerityApp({super.key});
+class VerifAIApp extends StatelessWidget {
+  const VerifAIApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Verity.ai',
+      title: 'VerifAI',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(

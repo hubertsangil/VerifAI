@@ -118,11 +118,27 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Verity.ai'),
+        title: const Text('VerifAI'),
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () async {
+              // Show signing out splash screen
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const _SigningOutDialog(),
+              );
+              
+              // Wait a moment for visual feedback
+              await Future.delayed(const Duration(milliseconds: 800));
+              
+              // Close the dialog
+              if (context.mounted) {
+                Navigator.of(context).pop();
+              }
+              
+              // Sign out
               await FirebaseAuth.instance.signOut();
             },
           ),
@@ -231,7 +247,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Verity.ai empowers users to combat misinformation through AI-powered fact-checking, promoting informed decision-making and digital literacy.',
+                        'VerifAI empowers users to combat misinformation through AI-powered fact-checking, promoting informed decision-making and digital literacy.',
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -365,6 +381,40 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// Signing out splash screen
+class _SigningOutDialog extends StatelessWidget {
+  const _SigningOutDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      child: Dialog(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 24),
+              Text(
+                'Signing you out...',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "951237820554",
+    "project_id": "verif-ai-8623",
+    "storage_bucket": "verif-ai-8623.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:951237820554:android:d1ac95f2b2ed9e1a872d73",
+        "android_client_info": {
+          "package_name": "com.example.verity_ai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAbRzuMuiz5c6NxOPy-T45i_pSbMNklaps"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
