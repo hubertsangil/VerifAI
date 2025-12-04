@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'dart:async';
-import '../services/gemini_service.dart';
+import '../services/gemini_service.dart'; // Direct API call (works without Cloud Functions)
+// import '../services/cloud_function_service.dart'; // Requires Blaze plan
 import '../services/history_service.dart';
 import '../models/fact_check_model.dart';
+import '../config/app_config.dart';
 import 'history_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -16,7 +18,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _urlController = TextEditingController();
-  final _geminiService = GeminiService();
+  final _geminiService = GeminiService(); // Direct API call (works without Cloud Functions)
+  // final _cloudFunctionService = CloudFunctionService(); // Requires Blaze plan
   final _historyService = HistoryService();
   
   int _currentIndex = 0;
@@ -69,24 +72,47 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    // Check if API is configured
+    if (!AppConfig.isConfigured) {
+      _showSnackBar('⚠️ ${AppConfig.configurationStatus}\nPlease add your Gemini API key in lib/config/app_config.dart');
+      return;
+    }
+
     setState(() {
       _isAnalyzing = true;
       _currentResult = null;
     });
 
     try {
+      debugPrint('Starting analysis for URL: ${_urlController.text.trim()}');
+      
+      // Direct API call (works without Cloud Functions, but less secure for production)
       final result = await _geminiService.analyzeUrl(_urlController.text.trim());
+      
+      debugPrint('Analysis complete. Verdict: ${result.verdict}');
+      debugPrint('Summary: ${result.summary}');
+      
+      // Check if the result indicates an error
+      if (result.verdict == FactCheckVerdict.unknown && 
+          result.summary.contains('Error analyzing URL')) {
+        _showSnackBar('Failed to analyze URL. Please check:\n1. Your internet connection\n2. The URL is valid\n3. Your Gemini API key is correct');
+      }
       
       // Save to history
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
+        debugPrint('Saving to history for user: ${user.uid}');
         await _historyService.saveFactCheck(user.uid, result);
       }
 
       setState(() {
         _currentResult = result;
       });
-    } catch (e) {
+      
+      debugPrint('Result displayed successfully');
+    } catch (e, stackTrace) {
+      debugPrint('Error analyzing link: $e');
+      debugPrint('Stack trace: $stackTrace');
       _showSnackBar('Error analyzing link: ${e.toString()}');
     } finally {
       setState(() {
@@ -97,7 +123,53 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 4),
+        action: message.contains('API key') 
+          ? SnackBarAction(
+              label: 'Help',
+              onPressed: () {
+                showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text('Setup Required'),
+                    content: const SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('To use VerifAI fact-checking, you need a Gemini API key:\n'),
+                          Text('1. Visit: https://makersuite.google.com/app/apikey', 
+                               style: TextStyle(fontWeight: FontWeight.bold)),
+                          SizedBox(height: 8),
+                          Text('2. Sign in with your Google account'),
+                          SizedBox(height: 8),
+                          Text('3. Click "Create API Key"'),
+                          SizedBox(height: 8),
+                          Text('4. Copy the key'),
+                          SizedBox(height: 8),
+                          Text('5. Open lib/config/app_config.dart'),
+                          SizedBox(height: 8),
+                          Text('6. Replace YOUR_GEMINI_API_KEY_HERE with your key'),
+                          SizedBox(height: 16),
+                          Text('Note: The Gemini API has a free tier for testing!', 
+                               style: TextStyle(fontStyle: FontStyle.italic)),
+                        ],
+                      ),
+                    ),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Got it'),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            )
+          : null,
+      ),
     );
   }
 
@@ -190,7 +262,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Paste a link below to check its credibility',
+            'Paste a link or the actual content to fact-check',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -199,18 +271,20 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           const SizedBox(height: 40),
           
-          // Centered URL Input Field with Google styling
+          // Centered URL/Content Input Field with Google styling
           Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 600),
               child: TextField(
                 controller: _urlController,
                 textAlign: TextAlign.center,
+                maxLines: null,
+                minLines: 1,
                 style: const TextStyle(fontSize: 16),
                 decoration: InputDecoration(
-                  labelText: 'Enter URL to verify',
-                  hintText: 'https://example.com/article',
-                  prefixIcon: const Icon(Icons.link),
+                  labelText: 'Enter URL or text content',
+                  hintText: 'https://example.com/article or paste the content here',
+                  prefixIcon: const Icon(Icons.fact_check_outlined),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(50),
                     borderSide: const BorderSide(width: 1),

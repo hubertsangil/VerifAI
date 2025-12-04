@@ -129,12 +129,12 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           password: _passwordController.text,
         );
         
-        // Close splash screen using root navigator
+        // Close splash screen
         if (mounted) {
           Navigator.of(context, rootNavigator: true).pop();
         }
         
-        // Show success message for login
+        // Show success message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -151,27 +151,30 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           password: _passwordController.text,
         );
         
-        // Close splash screen immediately after account creation
+        // Store additional user information in Firestore
+        try {
+          await _firestore.collection('users').doc(userCredential.user!.uid).set({
+            'fullName': _fullNameController.text.trim(),
+            'email': _emailController.text.trim(),
+            'age': int.parse(_ageController.text.trim()),
+            'createdAt': FieldValue.serverTimestamp(),
+          }).timeout(const Duration(seconds: 5));
+          
+          await userCredential.user!.updateDisplayName(_fullNameController.text.trim());
+        } catch (e) {
+          debugPrint('Error saving user data: $e');
+        }
+        
+        // Close splash screen
         if (mounted) {
           Navigator.of(context, rootNavigator: true).pop();
         }
         
-        // Store additional user information in Firestore (in background)
-        _firestore.collection('users').doc(userCredential.user!.uid).set({
-          'fullName': _fullNameController.text.trim(),
-          'email': _emailController.text.trim(),
-          'age': int.parse(_ageController.text.trim()),
-          'createdAt': FieldValue.serverTimestamp(),
-        });
-        
-        // Update display name
-        userCredential.user!.updateDisplayName(_fullNameController.text.trim());
-        
-        // Show success message for registration
+        // Show success message
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('✓ Account created successfully! Welcome, ${_fullNameController.text.trim()}!'),
+              content: Text('✓ Account created! Welcome, ${_fullNameController.text.trim()}!'),
               backgroundColor: Colors.green,
               duration: const Duration(seconds: 3),
             ),
@@ -191,10 +194,13 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
         
         switch (e.code) {
           case 'user-not-found':
-            _emailError = 'No user found with this email';
+            _generalError = 'This user does not exist. Please check your email or sign up.';
             break;
           case 'wrong-password':
-            _passwordError = 'Wrong password provided';
+            _generalError = 'Incorrect password. Please try again.';
+            break;
+          case 'invalid-credential':
+            _generalError = 'Invalid email or password. Please check your credentials.';
             break;
           case 'email-already-in-use':
             _emailError = 'An account already exists with this email';
@@ -205,8 +211,11 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           case 'invalid-email':
             _emailError = 'Invalid email address';
             break;
+          case 'too-many-requests':
+            _generalError = 'Too many failed attempts. Please try again later.';
+            break;
           default:
-            _generalError = e.message ?? 'An error occurred. Please try again.';
+            _generalError = 'Invalid email or password. Please try again.';
         }
       });
     } catch (e) {

@@ -39,9 +39,13 @@ dependencies:
   firebase_core: ^3.15.2
   firebase_auth: ^5.3.4
   cloud_firestore: ^5.5.2
+  # cloud_functions: ^5.2.2  # Commented out - not using Cloud Functions
   
   # HTTP for API calls
   http: ^1.2.2
+  
+  # HTML parser for metadata extraction
+  html: ^0.15.4
   
   # Receive shared content from other apps
   receive_sharing_intent: ^1.8.0

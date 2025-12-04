@@ -1,24 +1,40 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/fact_check_model.dart';
 import '../config/app_config.dart';
+import 'metadata_service.dart';
 
 class GeminiService {
   static const String _apiKey = AppConfig.geminiApiKey;
   static const String _baseUrl = AppConfig.geminiBaseUrl;
+  final _metadataService = MetadataService();
 
-  /// Analyzes a URL for fact-checking using the Gemini API
+  /// Analyzes a URL for fact-checking using metadata and Gemini API
   Future<FactCheckResult> analyzeUrl(String url) async {
     try {
+      // Extract metadata from URL
+      debugPrint('Fetching metadata for: $url');
+      final metadata = await _metadataService.extractMetadata(url);
+      
+      String contentToAnalyze;
+      if (metadata != null) {
+        contentToAnalyze = metadata.toAnalysisText();
+        debugPrint('Metadata extracted successfully');
+      } else {
+        contentToAnalyze = 'URL: $url\n(Unable to extract metadata - URL may require authentication or be inaccessible)';
+        debugPrint('Could not extract metadata, using URL only');
+      }
+      
       // Construct the request
       final requestBody = {
         'contents': [
           {
             'parts': [
               {
-                'text': '''You are a professional fact-checker. Analyze the following URL and its content for accuracy.
+                'text': '''You are a professional fact-checker. Analyze the following content for accuracy and credibility.
 
-URL: $url
+$contentToAnalyze
 
 Please provide your analysis in the following JSON format:
 {
@@ -34,8 +50,10 @@ Please provide your analysis in the following JSON format:
 
 IMPORTANT: 
 1. Your response MUST start with "VERDICT: " followed by exactly one of: ACCURATE, MISLEADING, or FALSE
-2. Provide a clear summary explaining your verdict
-3. Include at least 2-3 credible sources to support your analysis
+2. Analyze the claims made in the title, description, and content
+3. Cross-reference with known facts and credible sources
+4. Provide a clear summary explaining your verdict
+5. Include at least 2-3 credible sources to support your analysis
 4. Be objective and thorough in your analysis'''
               }
             ]

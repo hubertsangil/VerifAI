@@ -1,20 +1,21 @@
-/// Configuration constants for Verity.ai
+/// Configuration constants for VerifAI app
 /// 
 /// IMPORTANT: Update these values with your actual credentials before running the app
 class AppConfig {
   // TODO: Replace with your Gemini API key from https://makersuite.google.com/app/apikey
-  static const String geminiApiKey = 'YOUR_GEMINI_API_KEY';
+  // Get your key at: https://makersuite.google.com/app/apikey
+  static const String geminiApiKey = 'AIzaSyCgeJW_Yo1XN01HaynKI4zgONQ30lck0Z4';
   
   // TODO: Replace with your Firebase App ID from Firebase Console
-  static const String firebaseAppId = 'YOUR_APP_ID';
+  static const String firebaseAppId = '1:951237820554:android:d1ac95f2b2ed9e1a872d73';
   
   // App information
-  static const String appName = 'Verity.ai';
+  static const String appName = 'VerifAI';
   static const String appVersion = '1.0.0';
   
   // API endpoints
   static const String geminiBaseUrl = 
-      'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
+      'https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent';
   
   // Firestore paths
   static String userFactChecksPath(String userId) => 
@@ -22,24 +23,16 @@ class AppConfig {
   
   // Validation
   static bool get isConfigured {
-    return geminiApiKey != 'YOUR_GEMINI_API_KEY' && 
-           firebaseAppId != 'YOUR_APP_ID';
+    return geminiApiKey.isNotEmpty && 
+           geminiApiKey != 'YOUR_GEMINI_API_KEY_HERE' &&
+           geminiApiKey.length > 20; // API keys are typically longer than 20 chars
   }
   
   static String get configurationStatus {
-    final List<String> missing = [];
-    
-    if (geminiApiKey == 'YOUR_GEMINI_API_KEY') {
-      missing.add('Gemini API Key');
-    }
-    if (firebaseAppId == 'YOUR_APP_ID') {
-      missing.add('Firebase App ID');
+    if (geminiApiKey.isEmpty || geminiApiKey == 'YOUR_GEMINI_API_KEY_HERE') {
+      return 'Missing configuration: Gemini API Key';
     }
     
-    if (missing.isEmpty) {
-      return 'Configuration complete!';
-    }
-    
-    return 'Missing configuration: ${missing.join(", ")}';
+    return 'Configuration complete!';
   }
 }
