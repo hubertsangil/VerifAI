@@ -255,6 +255,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  String _getUserFirstName() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user?.displayName != null && user!.displayName!.isNotEmpty) {
+      // Extract first name from display name (split by space)
+      final nameParts = user.displayName!.split(' ');
+      return nameParts.isNotEmpty ? nameParts.first : 'User';
+    }
+    return 'User';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -286,11 +296,52 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: IndexedStack(
-        index: _currentIndex,
+      body: Column(
         children: [
-          _buildNewCheckTab(),
-          const HistoryScreen(),
+          // Welcome message with user's first name
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  'Ready to set the truth free, ',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                ),
+                _AnimatedGradientText(
+                  text: _getUserFirstName(),
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                ),
+                Text(
+                  '?',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Main content
+          Expanded(
+            child: IndexedStack(
+              index: _currentIndex,
+              children: [
+                _buildNewCheckTab(),
+                const HistoryScreen(),
+              ],
+            ),
+          ),
         ],
       ),
       bottomNavigationBar: NavigationBar(
@@ -322,14 +373,9 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 40),
+          const SizedBox(height: 20),
           
-          // Call-to-Action Header with animated blue gradient
-          const _AnimatedGradientText(
-            text: 'Verify the Truth',
-            fontSize: 48,
-          ),
-          const SizedBox(height: 8),
+          // Subtitle below welcome message
           Text(
             'Paste a link below to check its credibility',
             textAlign: TextAlign.center,
@@ -338,7 +384,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   fontSize: 16,
                 ),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 32),
           
           // Centered URL Input Field with Google styling
           Center(
@@ -928,10 +974,12 @@ class _GradientButtonState extends State<_GradientButton>
 class _AnimatedGradientText extends StatefulWidget {
   final String text;
   final double fontSize;
+  final FontWeight? fontWeight;
 
   const _AnimatedGradientText({
     required this.text,
     required this.fontSize,
+    this.fontWeight,
   });
 
   @override
@@ -990,7 +1038,7 @@ class _AnimatedGradientTextState extends State<_AnimatedGradientText>
             widget.text,
             textAlign: TextAlign.center,
             style: TextStyle(
-              fontWeight: FontWeight.bold,
+              fontWeight: widget.fontWeight ?? FontWeight.bold,
               fontSize: widget.fontSize,
               color: Colors.white,
             ),

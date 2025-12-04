@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -11,12 +12,14 @@ class AuthScreen extends StatefulWidget {
 
 class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
-  final _fullNameController = TextEditingController();
+  final _firstNameController = TextEditingController();
+  final _lastNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _ageController = TextEditingController();
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
+  final _googleSignIn = GoogleSignIn();
   
   late AnimationController _animationController;
   late AnimationController _entryAnimationController;
@@ -28,6 +31,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   
   bool _isLogin = true;
   bool _isLoading = false;
+  bool _isDialogShowing = false;
   String? _emailError;
   String? _passwordError;
   String? _generalError;
@@ -92,7 +96,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   void dispose() {
     _animationController.dispose();
     _entryAnimationController.dispose();
-    _fullNameController.dispose();
+    _firstNameController.dispose();
+    _lastNameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     _ageController.dispose();
@@ -113,6 +118,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
 
     // Show splash screen
     if (mounted) {
+      _isDialogShowing = true;
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -128,22 +134,6 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
-        
-        // Close splash screen
-        if (mounted) {
-          Navigator.of(context, rootNavigator: true).pop();
-        }
-        
-        // Show success message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✓ Login successful! Welcome back.'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
       } else {
         // Create user account
         final userCredential = await _auth.createUserWithEmailAndPassword(
@@ -152,38 +142,37 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
         );
         
         // Store additional user information in Firestore
-        try {
-          await _firestore.collection('users').doc(userCredential.user!.uid).set({
-            'fullName': _fullNameController.text.trim(),
-            'email': _emailController.text.trim(),
-            'age': int.parse(_ageController.text.trim()),
-            'createdAt': FieldValue.serverTimestamp(),
-          }).timeout(const Duration(seconds: 5));
-          
-          await userCredential.user!.updateDisplayName(_fullNameController.text.trim());
-        } catch (e) {
-          debugPrint('Error saving user data: $e');
-        }
+        final firstName = _firstNameController.text.trim();
+        final lastName = _lastNameController.text.trim();
+        final fullName = '$firstName $lastName';
         
-        // Close splash screen
-        if (mounted) {
-          Navigator.of(context, rootNavigator: true).pop();
-        }
+        // Save to Firestore and update display name in background
+        _firestore.collection('users').doc(userCredential.user!.uid).set({
+          'firstName': firstName,
+          'lastName': lastName,
+          'fullName': fullName,
+          'email': _emailController.text.trim(),
+          'age': int.parse(_ageController.text.trim()),
+          'createdAt': FieldValue.serverTimestamp(),
+        }).catchError((e) => debugPrint('Error saving user data: $e'));
         
-        // Show success message
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('✓ Account created! Welcome, ${_fullNameController.text.trim()}!'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 3),
-            ),
-          );
-        }
+        userCredential.user!.updateDisplayName(fullName)
+            .catchError((e) => debugPrint('Error updating display name: $e'));
       }
+      
+      // Close splash screen immediately after successful auth
+      if (mounted && _isDialogShowing) {
+        _isDialogShowing = false;
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      
+      // Small delay to ensure smooth transition
+      await Future.delayed(const Duration(milliseconds: 100));
+      
     } on FirebaseAuthException catch (e) {
       // Close splash screen
-      if (mounted) {
+      if (mounted && _isDialogShowing) {
+        _isDialogShowing = false;
         Navigator.of(context, rootNavigator: true).pop();
       }
       
@@ -220,7 +209,8 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
       });
     } catch (e) {
       // Close splash screen
-      if (mounted) {
+      if (mounted && _isDialogShowing) {
+        _isDialogShowing = false;
         Navigator.of(context, rootNavigator: true).pop();
       }
       
@@ -233,6 +223,88 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    try {
+      // Show loading dialog
+      if (mounted) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => const _AuthLoadingDialog(message: 'Signing in with Google...'),
+        );
+      }
+
+      // Trigger the authentication flow
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      
+      if (googleUser == null) {
+        // User canceled the sign-in
+        if (mounted) {
+          Navigator.of(context, rootNavigator: true).pop();
+        }
+        return;
+      }
+
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // Create a new credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the Google credential
+      final userCredential = await _auth.signInWithCredential(credential);
+      
+      // Add delay to ensure auth state changes
+      await Future.delayed(const Duration(milliseconds: 300));
+
+      // Save user data to Firestore (if new user)
+      if (userCredential.additionalUserInfo?.isNewUser ?? false) {
+        final user = userCredential.user;
+        if (user != null) {
+          final nameParts = user.displayName?.split(' ') ?? ['User', ''];
+          final firstName = nameParts.isNotEmpty ? nameParts.first : 'User';
+          final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
+          
+          _firestore.collection('users').doc(user.uid).set({
+            'firstName': firstName,
+            'lastName': lastName,
+            'fullName': user.displayName ?? 'User',
+            'email': user.email,
+            'createdAt': FieldValue.serverTimestamp(),
+          }).catchError((error) {
+            debugPrint('Error saving user data: $error');
+          });
+        }
+      }
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    } on FirebaseAuthException catch (e) {
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      
+      setState(() {
+        _generalError = 'Google sign-in failed: ${e.message}';
+      });
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+      
+      setState(() {
+        _generalError = 'An error occurred during Google sign-in';
+      });
     }
   }
 
@@ -380,24 +452,24 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                       ),
                       const SizedBox(height: 24),
                   
-                  // Animated Full Name and Age Fields
+                  // Animated Name and Age Fields
                   AnimatedSize(
                     duration: const Duration(milliseconds: 300),
                     curve: Curves.easeInOut,
                     child: Column(
                       children: [
-                        // Full Name Field (only for sign up)
+                        // First Name and Last Name Fields (only for sign up)
                         if (!_isLogin) ...[
                           FadeTransition(
                             opacity: _fadeAnimation,
                             child: SlideTransition(
                               position: _slideAnimation,
                               child: TextFormField(
-                                controller: _fullNameController,
+                                controller: _firstNameController,
                                 keyboardType: TextInputType.name,
                                 textCapitalization: TextCapitalization.words,
                                 decoration: InputDecoration(
-                                  labelText: 'Full Name',
+                                  labelText: 'First Name',
                                   prefixIcon: const Icon(Icons.person_outlined),
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(12),
@@ -413,10 +485,46 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                                 ),
                                 validator: (value) {
                                   if (value == null || value.trim().isEmpty) {
-                                    return 'Please enter your full name';
+                                    return 'Please enter your first name';
                                   }
                                   if (value.trim().length < 2) {
-                                    return 'Name must be at least 2 characters';
+                                    return 'First name must be at least 2 characters';
+                                  }
+                                  return null;
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          FadeTransition(
+                            opacity: _fadeAnimation,
+                            child: SlideTransition(
+                              position: _slideAnimation,
+                              child: TextFormField(
+                                controller: _lastNameController,
+                                keyboardType: TextInputType.name,
+                                textCapitalization: TextCapitalization.words,
+                                decoration: InputDecoration(
+                                  labelText: 'Last Name',
+                                  prefixIcon: const Icon(Icons.person_outlined),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: Colors.grey.shade300),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(color: Color(0xFF1976D2), width: 2),
+                                  ),
+                                ),
+                                validator: (value) {
+                                  if (value == null || value.trim().isEmpty) {
+                                    return 'Please enter your last name';
+                                  }
+                                  if (value.trim().length < 2) {
+                                    return 'Last name must be at least 2 characters';
                                   }
                                   return null;
                                 },
@@ -658,6 +766,72 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
                       onPressed: _isLoading ? null : _submitForm,
                       isLoading: _isLoading,
                       label: _isLogin ? 'Sign In' : 'Sign Up',
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Divider with "Or" text
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Divider(
+                          color: Colors.grey.shade300,
+                          thickness: 1,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          _isLogin ? 'Or sign in with' : 'Or sign up with',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Divider(
+                          color: Colors.grey.shade300,
+                          thickness: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  // Google Sign-In Button
+                  SizedBox(
+                    height: 50,
+                    child: OutlinedButton.icon(
+                      onPressed: _isLoading ? null : _signInWithGoogle,
+                      icon: Image.asset(
+                        'assets/images/google_logo.png',
+                        height: 24,
+                        width: 24,
+                        errorBuilder: (context, error, stackTrace) {
+                          // Fallback to icon if image not found
+                          return const Icon(
+                            Icons.g_mobiledata,
+                            size: 32,
+                            color: Color(0xFF4285F4),
+                          );
+                        },
+                      ),
+                      label: Text(
+                        _isLogin ? 'Continue with Google' : 'Sign up with Google',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.black87,
+                        side: BorderSide(color: Colors.grey.shade300, width: 1.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        backgroundColor: Colors.white,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 16),
