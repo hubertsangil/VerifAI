@@ -332,7 +332,8 @@ This project is created for educational purposes as part of a mobile computing c
 
 ## Contributors
 
-- Hubert Sangil (@hubertsangil)
+- Hubert San Gil (@hubertsangil)
+- Janison Bustos (@jgianee)
 
 ## Support
 
